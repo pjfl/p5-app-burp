@@ -1,14 +1,19 @@
-package App::Burp;
+package App::Burp::Config;
 
-use 5.010001;
-use strictures;
-use version; our $VERSION = qv( sprintf '0.1.%d', q$Rev: 2 $ =~ /\d+/gmx );
+use namespace::autoclean;
 
-use Class::Usul::Functions  qw( ns_environment );
+use Class::Usul::Constants      qw( FALSE NUL TRUE );
+use Data::Validation::Constants qw( );
+use File::DataClass::Types      qw( HashRef NonEmptySimpleStr RegexpRef );
+use Moo;
 
-sub env_var {
-   return ns_environment __PACKAGE__, $_[ 1 ], $_[ 2 ];
-}
+extends q(Class::Usul::Config::Programs);
+
+has 'excludes' => is => 'ro', isa => RegexpRef,
+   builder => sub { qr{ \A (?: \.\#.+ ) \z }mx };
+
+has 'watchers' => is => 'ro', isa => HashRef[NonEmptySimpleStr],
+   builder => sub { {} };
 
 1;
 
@@ -20,11 +25,11 @@ __END__
 
 =head1 Name
 
-App::Burp - Runs commands when files change
+App::Burp::Config - One-line description of the modules purpose
 
 =head1 Synopsis
 
-   use App::Burp;
+   use App::Burp::Config;
    # Brief but working code examples
 
 =head1 Description
