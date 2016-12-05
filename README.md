@@ -1,6 +1,6 @@
 # Name
 
-App::Burp - Runs commands when files change
+App::Burp - Watch for changes to files and run commands
 
 # Synopsis
 
@@ -11,9 +11,17 @@ App::Burp - Runs commands when files change
 
 # Configuration and Environment
 
-Defines the following attributes;
+Defines no attributes
 
 # Subroutines/Methods
+
+## `env_var`
+
+    $value = App::Burp->env_var( 'name', 'new_value' );
+
+Looks up the environment variable and returns it's value. Also acts as a
+mutator if provided with an optional new value. Uppercases and prefixes
+the environment variable key
 
 # Diagnostics
 

@@ -2,7 +2,7 @@ package App::Burp;
 
 use 5.010001;
 use strictures;
-use version; our $VERSION = qv( sprintf '0.1.%d', q$Rev: 3 $ =~ /\d+/gmx );
+use version; our $VERSION = qv( sprintf '0.1.%d', q$Rev: 4 $ =~ /\d+/gmx );
 
 use Class::Usul::Functions  qw( ns_environment );
 
@@ -20,7 +20,7 @@ __END__
 
 =head1 Name
 
-App::Burp - Runs commands when files change
+App::Burp - Watch for changes to files and run commands
 
 =head1 Synopsis
 
@@ -31,13 +31,17 @@ App::Burp - Runs commands when files change
 
 =head1 Configuration and Environment
 
-Defines the following attributes;
-
-=over 3
-
-=back
+Defines no attributes
 
 =head1 Subroutines/Methods
+
+=head2 C<env_var>
+
+   $value = App::Burp->env_var( 'name', 'new_value' );
+
+Looks up the environment variable and returns it's value. Also acts as a
+mutator if provided with an optional new value. Uppercases and prefixes
+the environment variable key
 
 =head1 Diagnostics
 

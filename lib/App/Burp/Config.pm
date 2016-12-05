@@ -25,7 +25,7 @@ __END__
 
 =head1 Name
 
-App::Burp::Config - One-line description of the modules purpose
+App::Burp::Config - Configuration attributes for this application
 
 =head1 Synopsis
 

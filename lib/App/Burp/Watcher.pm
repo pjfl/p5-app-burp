@@ -206,7 +206,7 @@ __END__
 
 =head1 Name
 
-App::Burp::Watcher - One-line description of the modules purpose
+App::Burp::Watcher - Watches for changes in files and runs commands
 
 =head1 Synopsis
 
