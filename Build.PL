@@ -15,8 +15,16 @@ my $prereqs  = {
     'version' => '0.88'
   },
   'requires' => {
-    'Class::Usul' => 'v0.65.0',
-    'perl' => '5.010001'
+    'Class::Usul' => 'v0.78.0',
+    'Daemon::Control' => '0.001006',
+    'Data::Validation' => 'v0.27.0',
+    'File::ChangeNotify' => '0.26',
+    'File::DataClass' => 'v0.71.0',
+    'Moo' => '2.001001',
+    'Unexpected' => 'v0.45.0',
+    'namespace::autoclean' => '0.26',
+    'perl' => '5.010001',
+    'strictures' => '2.000000'
   },
   'test_requires' => {
     'File::Spec' => '0',
