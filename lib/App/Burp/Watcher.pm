@@ -28,10 +28,8 @@ my $_daemon = sub {
 
    while (my @events = $self->watcher->wait_for_events) {
       for my $event (@events) {
-         my $path = io( $event->path ); my $file = $path->basename;
-
-         $file =~ $self->config->exclude and next;
-
+         my $path  = io( io( $event->path )->canonpath );
+         my $file  = $path->basename; $file =~ $self->config->exclude and next;
          my $mtime = $path->stat->{mtime};
 
          exists $mtimes->{ "${path}" }
