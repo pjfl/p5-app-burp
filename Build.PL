@@ -20,6 +20,7 @@ my $prereqs  = {
     'File::ChangeNotify' => '0.26',
     'File::DataClass' => 'v0.71.0',
     'Moo' => '2.001001',
+    'Try::Tiny' => '0.22',
     'Unexpected' => 'v0.45.0',
     'namespace::autoclean' => '0.26',
     'perl' => '5.010001',

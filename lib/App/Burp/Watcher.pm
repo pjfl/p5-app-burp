@@ -13,6 +13,7 @@ use English                qw( -no_match_vars );
 use File::ChangeNotify;
 use File::DataClass::Types qw( Path );
 use Scalar::Util           qw( blessed );
+use Try::Tiny;
 use Unexpected::Functions  qw( Unspecified );
 use Moo;
 
@@ -26,6 +27,8 @@ my $_daemon = sub {
 
    $self->config->appclass->env_var( 'debug', $self->debug );
 
+   my $cmd_opts = { out => 'stdout', err => 'stderr' };
+
    while (my @events = $self->watcher->wait_for_events) {
       for my $event (@events) {
          my $path  = io( io( $event->path )->canonpath );
@@ -35,12 +38,16 @@ my $_daemon = sub {
          exists $mtimes->{ "${path}" }
             and $mtimes->{ "${path}" } == $mtime and next;
 
-         my $cmd = $self->commands->{ $path->dirname } or next;
-
-         if (is_hashref $cmd) { $self->run_cmd( $cmd ) }
-         else { $self->run_cmd( $cmd, { out => 'stdout', err => 'stderr' } ) }
-
          $mtimes->{ "${path}" } = $mtime;
+
+         try {
+            my $cmd = $self->commands->{ $path->dirname }
+               or throw 'Directory [_1] has no command', [ $path->dirname ];
+
+            if (is_hashref $cmd) { $self->run_cmd( $cmd ) }
+            else { $self->run_cmd( $cmd, $cmd_opts ) }
+         }
+         catch { $self->log->error( $_ ) };
       }
    }
 

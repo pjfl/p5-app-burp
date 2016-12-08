@@ -3,6 +3,7 @@ requires "Daemon::Control" => "0.001006";
 requires "File::ChangeNotify" => "0.26";
 requires "File::DataClass" => "v0.71.0";
 requires "Moo" => "2.001001";
+requires "Try::Tiny" => "0.22";
 requires "Unexpected" => "v0.45.0";
 requires "namespace::autoclean" => "0.26";
 requires "perl" => "5.010001";
