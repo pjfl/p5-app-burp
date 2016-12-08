@@ -2,18 +2,16 @@ package App::Burp::Config;
 
 use namespace::autoclean;
 
-use Class::Usul::Constants      qw( FALSE NUL TRUE );
-use Data::Validation::Constants qw( );
-use File::DataClass::Types      qw( HashRef NonEmptySimpleStr RegexpRef );
+use Class::Usul::Types qw( ArrayRef HashRef NonEmptySimpleStr RegexpRef );
 use Moo;
 
 extends q(Class::Usul::Config::Programs);
 
-has 'excludes' => is => 'ro', isa => RegexpRef,
+has 'exclude' => is => 'ro', isa => RegexpRef,
    builder => sub { qr{ \A (?: \.\#.+ ) \z }mx };
 
-has 'watchers' => is => 'ro', isa => HashRef[NonEmptySimpleStr],
-   builder => sub { {} };
+has 'watchers' => is => 'ro',
+   isa => HashRef[ArrayRef|HashRef|NonEmptySimpleStr], builder => sub { {} };
 
 1;
 

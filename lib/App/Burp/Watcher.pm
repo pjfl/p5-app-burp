@@ -5,7 +5,7 @@ use namespace::autoclean;
 use App::Burp; our $VERSION = $App::Burp::VERSION;
 
 use Class::Usul::Constants qw( EXCEPTION_CLASS FALSE NUL OK SPC TRUE );
-use Class::Usul::Functions qw( get_user io throw );
+use Class::Usul::Functions qw( get_user is_hashref io throw );
 use Class::Usul::Types     qw( ArrayRef HashRef NonEmptySimpleStr
                                Object PositiveInt RegexpRef );
 use Daemon::Control;
@@ -30,17 +30,19 @@ my $_daemon = sub {
       for my $event (@events) {
          my $path = io( $event->path ); my $file = $path->basename;
 
-         $file =~ $self->config->excludes and next;
+         $file =~ $self->config->exclude and next;
 
          my $mtime = $path->stat->{mtime};
 
-         exists $mtimes->{ $file } and $mtimes->{ $file } == $mtime and next;
+         exists $mtimes->{ "${path}" }
+            and $mtimes->{ "${path}" } == $mtime and next;
 
-         my $cmd = [ split m{ [ ] }mx, $self->commands->{ $path->dirname } ];
+         my $cmd = $self->commands->{ $path->dirname } or next;
 
-         $self->run_cmd( $cmd, { out => 'stdout', err => 'stderr' } );
+         if (is_hashref $cmd) { $self->run_cmd( $cmd ) }
+         else { $self->run_cmd( $cmd, { out => 'stdout', err => 'stderr' } ) }
 
-         $mtimes->{ $file } = $mtime;
+         $mtimes->{ "${path}" } = $mtime;
       }
    }
 
@@ -48,6 +50,29 @@ my $_daemon = sub {
 };
 
 # Attribute constructors
+my $_build_commands = sub {
+   my $self = shift; my $watchers = $self->config->watchers;
+
+   return { map { io( $_ )->dirname, $watchers->{ $_ } } keys %{ $watchers } };
+};
+
+my $_build_directories = sub {
+   return [ map { io( $_ )->dirname } keys %{ $_[ 0 ]->config->watchers } ];
+};
+
+my $_build_filter = sub {
+   my $self = shift; my $watchers = $self->config->watchers;
+
+   my $pattern = join '|', map { io( $_ )->basename } keys %{ $watchers };
+
+   return qr{ \A (?: $pattern ) \z }mx;
+};
+
+my $_build_watcher = sub {
+   return File::ChangeNotify->instantiate_watcher
+      ( directories => $_[ 0 ]->directories, filter => $_[ 0 ]->filter );
+};
+
 my $_stdio_file = sub {
    my ($self, $extn, $name) = @_; $name //= $self->_program_name;
 
@@ -76,29 +101,12 @@ my $_build_daemon_control = sub {
    return Daemon::Control->new( $args );
 };
 
-my $_build_commands = sub {
-   my $watchers = $_[ 0 ]->config->watchers;
-
-   return { map   { io( $_ )->dirname, $watchers->{ $_ } }
-            keys %{ $watchers } };
-};
-
-my $_build_directories = sub {
-   return [ map { io( $_ )->dirname } keys %{ $_[ 0 ]->config->watchers } ];
-};
-
-my $_build_filter = sub {
-   my $pattern = join '|', map   { io( $_ )->basename }
-                           keys %{ $_[ 0 ]->config->watchers };
-
-   return qr{ \A (?: $pattern ) \z }mx;
-};
-
 # Public attributes
 # Override default in base class
 has '+config_class' => default => 'App::Burp::Config';
 
-has 'commands' => is => 'lazy', isa => HashRef[NonEmptySimpleStr],
+has 'commands' => is => 'lazy',
+   isa => HashRef[ArrayRef|HashRef|NonEmptySimpleStr],
    builder => $_build_commands;
 
 has 'directories' => is => 'lazy', isa => ArrayRef[NonEmptySimpleStr],
@@ -106,10 +114,7 @@ has 'directories' => is => 'lazy', isa => ArrayRef[NonEmptySimpleStr],
 
 has 'filter' => is => 'lazy', isa => RegexpRef, builder => $_build_filter;
 
-has 'watcher' => is => 'lazy', isa => Object, builder => sub {
-   File::ChangeNotify->instantiate_watcher
-      ( directories => $_[ 0 ]->directories, filter => $_[ 0 ]->filter );
-   };
+has 'watcher' => is => 'lazy', isa => Object, builder => $_build_watcher;
 
 # Private attributes
 has '_daemon_control' => is => 'lazy', isa => Object,
@@ -148,7 +153,7 @@ around 'run' => sub {
 
 # Public methods
 sub dump_self : method {
-   my $self = shift; $self->directories; $self->filter;
+   my $self = shift; $self->directories; $self->filter; $self->commands;
 
    return $self->SUPER::dump_self;
 }
@@ -174,10 +179,7 @@ sub start : method {
 
    $self->is_running and throw 'Already running';
 
-   my $name = $self->config->name;
-   my $rv = $self->_daemon_control->do_start;
-
-   return $rv;
+   return $self->_daemon_control->do_start;
 }
 
 sub status : method {
@@ -189,7 +191,7 @@ sub status : method {
 sub stop : method {
    my $self = shift; $self->params->{stop} = [ { expected_rv => 1 } ];
 
-   $self->is_running or throw 'Not running'; my $name = $self->config->name;
+   $self->is_running or throw 'Not running';
 
    my $rv = $self->_daemon_control->do_stop; $self->_clear_daemon_pid;
 

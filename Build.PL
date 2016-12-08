@@ -17,7 +17,6 @@ my $prereqs  = {
   'requires' => {
     'Class::Usul' => 'v0.78.0',
     'Daemon::Control' => '0.001006',
-    'Data::Validation' => 'v0.27.0',
     'File::ChangeNotify' => '0.26',
     'File::DataClass' => 'v0.71.0',
     'Moo' => '2.001001',

@@ -1,6 +1,5 @@
 requires "Class::Usul" => "v0.78.0";
 requires "Daemon::Control" => "0.001006";
-requires "Data::Validation" => "v0.27.0";
 requires "File::ChangeNotify" => "0.26";
 requires "File::DataClass" => "v0.71.0";
 requires "Moo" => "2.001001";
