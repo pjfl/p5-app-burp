@@ -20,35 +20,45 @@ use Moo;
 extends q(Class::Usul::Programs);
 
 # Private methods
+my $_run_cmd = sub {
+   my ($self, $mtimes, $opts, $event) = @_;
+
+   my $path  = io io( $event->path )->canonpath;
+   my $file  = $path->basename; $file =~ $self->config->exclude and return;
+   my $mtime = $path->stat->{mtime};
+
+   exists $mtimes->{ "${path}" } and $mtimes->{ "${path}" } == $mtime
+      and return;
+
+   $mtimes->{ "${path}" } = $mtime;
+
+   try {
+      my $tuples = $self->commands->{ $path->dirname }
+         or throw 'Directory [_1] has no commands', [ $path->dirname ];
+
+      for my $tuple (grep { $file =~ $_->[ 0 ] } @{ $tuples }) {
+         if (is_hashref $tuple->[ 1 ]) { $self->run_cmd( $tuple->[ 1 ] ) }
+         else { $self->run_cmd( $tuple->[ 1 ], $opts ) }
+
+         last;
+      }
+   }
+   catch { $self->log->error( $_ ) };
+
+   return;
+};
+
 my $_daemon = sub {
-   my $self = shift; my $mtimes = {};
+   my $self = shift;
 
    $PROGRAM_NAME = $self->_program_name.SPC.io( '.' )->parent->basename;
 
    $self->config->appclass->env_var( 'debug', $self->debug );
 
-   my $cmd_opts = { out => 'stdout', err => 'stderr' };
+   my $mtimes = {}; my $cmd_opts = { out => 'stdout', err => 'stderr' };
 
    while (my @events = $self->watcher->wait_for_events) {
-      for my $event (@events) {
-         my $path  = io( io( $event->path )->canonpath );
-         my $file  = $path->basename; $file =~ $self->config->exclude and next;
-         my $mtime = $path->stat->{mtime};
-
-         exists $mtimes->{ "${path}" }
-            and $mtimes->{ "${path}" } == $mtime and next;
-
-         $mtimes->{ "${path}" } = $mtime;
-
-         try {
-            my $cmd = $self->commands->{ $path->dirname }
-               or throw 'Directory [_1] has no command', [ $path->dirname ];
-
-            if (is_hashref $cmd) { $self->run_cmd( $cmd ) }
-            else { $self->run_cmd( $cmd, $cmd_opts ) }
-         }
-         catch { $self->log->error( $_ ) };
-      }
+      for my $event (@events) { $self->$_run_cmd( $mtimes, $cmd_opts, $event ) }
    }
 
    exit OK;
@@ -56,19 +66,32 @@ my $_daemon = sub {
 
 # Attribute constructors
 my $_build_commands = sub {
-   my $self = shift; my $watchers = $self->config->watchers;
+   my $self = shift; my $watchers = $self->config->watchers; my $cmds = {};
 
-   return { map { io( $_ )->dirname, $watchers->{ $_ } } keys %{ $watchers } };
+   for my $path (keys %{ $watchers }) {
+      my $io = io $path; my $file = $io->basename;
+
+      my $pattern = qr{ \A $file \z }mx;
+
+      push @{ $cmds->{ $io->dirname } }, [ $pattern, $watchers->{ $path } ];
+   }
+
+   return $cmds;
 };
 
 my $_build_directories = sub {
-   return [ map { io( $_ )->dirname } keys %{ $_[ 0 ]->config->watchers } ];
+   my $self = shift;
+   my $watchers = $self->config->watchers;
+   my $dirs = { map { io( $_ )->dirname => TRUE } keys %{ $watchers } };
+
+   return [ sort keys %{ $dirs } ];
 };
 
 my $_build_filter = sub {
-   my $self = shift; my $watchers = $self->config->watchers;
-
-   my $pattern = join '|', map { io( $_ )->basename } keys %{ $watchers };
+   my $self = shift;
+   my $watchers = $self->config->watchers;
+   my $files = { map { io( $_ )->basename => TRUE } keys %{ $watchers } };
+   my $pattern = join '|', keys %{ $files };
 
    return qr{ \A (?: $pattern ) \z }mx;
 };
@@ -89,7 +112,7 @@ my $_build_daemon_control = sub {
 
    my $prog = $conf->binsdir->catfile( $self->_program_name );
    my $args = {
-      name         => blessed $self || $self,
+      name         => $conf->appclass,
       path         => $prog->pathname,
 
       directory    => $conf->appldir,
@@ -125,12 +148,6 @@ has 'watcher' => is => 'lazy', isa => Object, builder => $_build_watcher;
 has '_daemon_control' => is => 'lazy', isa => Object,
    builder => $_build_daemon_control;
 
-has '_daemon_pid' => is => 'lazy', isa => PositiveInt, builder => sub {
-   my $path = $_[ 0 ]->_pid_file;
-
-   return (($path->exists && !$path->empty ? $path->getline : 0) // 0) },
-   clearer => TRUE;
-
 has '_pid_file' => is => 'lazy', isa => Path, builder => sub {
    my $file = $_[ 0 ]->config->name.'.pid';
 
@@ -144,9 +161,7 @@ has '_program_name' => is => 'lazy', isa => NonEmptySimpleStr,
 around 'run' => sub {
    my ($orig, $self) = @_; my $daemon = $self->_daemon_control;
 
-   $daemon->name     or throw Unspecified, [ 'name'     ];
-   $daemon->program  or throw Unspecified, [ 'program'  ];
-   $daemon->pid_file or throw Unspecified, [ 'pid file' ];
+   $daemon->name or throw Unspecified, [ 'name' ];
 
    $daemon->uid and not $daemon->gid
                 and $daemon->gid( get_user( $daemon->uid )->gid );
@@ -198,9 +213,7 @@ sub stop : method {
 
    $self->is_running or throw 'Not running';
 
-   my $rv = $self->_daemon_control->do_stop; $self->_clear_daemon_pid;
-
-   return $rv;
+   return $self->_daemon_control->do_stop;
 }
 
 1;
