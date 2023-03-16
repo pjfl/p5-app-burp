@@ -1,5 +1,6 @@
 Revision history for App::Burp
 
+          - Fixes for hacked File::ChangeNotify::Inotifier
           - Restarts when config file changes
           - Functional
 

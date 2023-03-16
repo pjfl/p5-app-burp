@@ -8,16 +8,17 @@ use File::Spec;
 
 BEGIN {
    my $bind = $Bin; $bind =~ m{ \A ([^\$%&\*;<>\`|]+) \z }mx and $bind = $1;
-   my $path = File::Spec->catfile( $bind, 'burp-localenv' );
-
-   -f $path and (do $path or die $EVAL_ERROR || "Path ${path} not done\n");
+   my $path = File::Spec->catfile($bind, 'burp-localenv');
+   (do $path or die $EVAL_ERROR || "Path ${path} not done\n") if -f $path;
 }
 
 use App::Burp::Watcher;
 
-exit App::Burp::Watcher->new_with_options
-   ( appclass => 'App::Burp', config => { cfgfiles => [ '.burp.json' ] },
-     home => '.', noask => 1 )->run;
+exit App::Burp::Watcher->new_with_options(
+   appclass => 'App::Burp',
+   config   => { cfgfiles => [ '.burp.json' ] },
+   home     => '.',
+   noask    => 1 )->run;
 
 __END__
 

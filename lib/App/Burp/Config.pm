@@ -8,7 +8,7 @@ use Moo;
 extends q(Class::Usul::Config::Programs);
 
 has 'exclude' => is => 'ro', isa => RegexpRef,
-   builder => sub { qr{ \A (?: \.\#.+ ) \z }mx };
+   builder => sub { qr{ \A (?: \.\#.+ ) }mx };
 
 has 'watchers' => is => 'ro',
    isa => HashRef[ArrayRef|HashRef|NonEmptySimpleStr], builder => sub { {} };

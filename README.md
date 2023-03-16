@@ -27,7 +27,7 @@ the environment variable key
 
 # Dependencies
 
-- [Class::Usul](https://metacpan.org/pod/Class::Usul)
+- [Class::Usul](https://metacpan.org/pod/Class%3A%3AUsul)
 
 # Incompatibilities
 
