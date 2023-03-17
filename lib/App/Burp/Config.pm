@@ -1,17 +1,25 @@
 package App::Burp::Config;
 
-use namespace::autoclean;
-
 use Class::Usul::Types qw( ArrayRef HashRef NonEmptySimpleStr RegexpRef );
 use Moo;
 
 extends q(Class::Usul::Config::Programs);
 
-has 'exclude' => is => 'ro', isa => RegexpRef,
-   builder => sub { qr{ \A (?: \.\#.+ ) }mx };
+has '_exclude' => is => 'ro', isa => NonEmptySimpleStr, init_arg => 'exclude',
+   default => '\.\#.+';
+
+has 'exclude' => is => 'lazy', isa => RegexpRef, init_arg => undef,
+   default => sub {
+      my $self  = shift;
+      my $regex = $self->_exclude;
+
+      return qr{ \A (?: $regex ) }mx;
+   };
 
 has 'watchers' => is => 'ro',
    isa => HashRef[ArrayRef|HashRef|NonEmptySimpleStr], builder => sub { {} };
+
+use namespace::autoclean;
 
 1;
 
