@@ -2,13 +2,13 @@ package App::Burp::Watcher;
 
 use App::Burp; our $VERSION = $App::Burp::VERSION;
 
+use App::Burp::Watcher::Inotify;
 use Class::Usul::Constants qw( EXCEPTION_CLASS FALSE NUL OK SPC TRUE );
 use Class::Usul::Functions qw( get_user is_hashref io throw );
 use Class::Usul::Types     qw( ArrayRef HashRef NonEmptySimpleStr
                                Object PositiveInt RegexpRef );
 use Daemon::Control;
 use English                qw( -no_match_vars );
-use File::ChangeNotify;
 use File::DataClass::Types qw( Path );
 use Scalar::Util           qw( blessed );
 use Try::Tiny;
@@ -214,7 +214,7 @@ sub _build_filter {
 sub _build_watcher {
    my $self = shift;
 
-   return File::ChangeNotify->instantiate_watcher(
+   return App::Burp::Watcher::Inotify->new(
       directories => $self->directories,
       exclude     => [qr{ \./ }mx],
       filter      => $self->filter,

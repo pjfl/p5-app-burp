@@ -1,5 +1,6 @@
 Revision history for App::Burp
 
+          - Uses own watcher class
           - Can set excludes from config
           - Fixes for hacked File::ChangeNotify::Inotifier
           - Restarts when config file changes
